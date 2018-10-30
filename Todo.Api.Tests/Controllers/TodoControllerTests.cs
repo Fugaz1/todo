@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -13,14 +11,14 @@ namespace Todo.Api.Tests.Controllers
 {
     public class TodoControllerTests
     {
-        private readonly TodoController _sut;
-        private readonly Mock<ITodoService> _todoServiceMock;
-
         public TodoControllerTests()
         {
             _todoServiceMock = new Mock<ITodoService>();
             _sut = new TodoController(_todoServiceMock.Object);
         }
+
+        private readonly TodoController _sut;
+        private readonly Mock<ITodoService> _todoServiceMock;
 
         [Theory]
         [InlineData(0)]
@@ -31,12 +29,10 @@ namespace Todo.Api.Tests.Controllers
             // arrange
             var itemsInput = new List<TodoItem>();
             for (var i = 1; i <= itemCount; i++)
-            {
-                itemsInput.Add(new TodoItem()
+                itemsInput.Add(new TodoItem
                 {
                     Name = $"Item {i}"
                 });
-            }
 
             _todoServiceMock.Setup(x => x.GetAll()).Returns(itemsInput);
 
@@ -54,13 +50,69 @@ namespace Todo.Api.Tests.Controllers
         }
 
         [Fact]
+        public void Create_Should_Redirect()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Name = "Item 1",
+                IsComplete = true
+            };
+
+            _todoServiceMock.Setup(x => x.Create(itemInput)).Returns(itemInput);
+
+            // act
+            var result = _sut.Create(itemInput);
+
+            // assert
+            result.Should().NotBeNull();
+            result.Should().BeOfType<CreatedAtRouteResult>();
+        }
+
+        [Fact]
+        public void Delete_Should_Return_NoContent()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Id = 2,
+                Name = "Item 2",
+                IsComplete = false
+            };
+
+            _todoServiceMock.Setup(x => x.Delete(itemInput.Id)).Returns(itemInput);
+
+            // act
+            var result = _sut.Delete(itemInput.Id);
+
+            // assert
+            result.Should().NotBeNull();
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public void Delete_Should_Return_NotFound()
+        {
+            // arrange
+            const int itemId = 666;
+            _todoServiceMock.Setup(x => x.Delete(itemId)).Returns((TodoItem) null);
+
+            // act
+            var result = _sut.Delete(itemId);
+
+            // assert
+            result.Should().NotBeNull();
+            result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
         public void GetById_Should_Return_Item()
         {
             // arrange
-            var itemInput = new TodoItem()
+            var itemInput = new TodoItem
             {
                 Id = 1,
-                Name = $"Item 1",
+                Name = "Item 1",
                 IsComplete = true
             };
 
@@ -94,6 +146,48 @@ namespace Todo.Api.Tests.Controllers
             result.Should().NotBeNull();
             result.Value.Should().BeNull();
             result.Result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Fact]
+        public void Update_Should_Return_NoContent()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Id = 2,
+                Name = "Item 2",
+                IsComplete = false
+            };
+
+            _todoServiceMock.Setup(x => x.Update(itemInput)).Returns(itemInput);
+
+            // act
+            var result = _sut.Update(itemInput.Id, itemInput);
+
+            // assert
+            result.Should().NotBeNull();
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public void Update_Should_Return_NotFound()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Id = 2,
+                Name = "Item 2",
+                IsComplete = false
+            };
+
+            _todoServiceMock.Setup(x => x.Update(itemInput)).Returns((TodoItem) null);
+
+            // act
+            var result = _sut.Update(itemInput.Id, itemInput);
+
+            // assert
+            result.Should().NotBeNull();
+            result.Should().BeOfType<NotFoundResult>();
         }
     }
 }

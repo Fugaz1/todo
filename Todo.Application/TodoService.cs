@@ -24,11 +24,48 @@ namespace Todo.Application
         {
             return _ctx.TodoItems.ToList();
         }
+
+        public TodoItem Create(TodoItem entity)
+        {
+            _ctx.TodoItems.Add(entity);
+            _ctx.SaveChanges();
+
+            return entity;
+        }
+
+        public TodoItem Update(TodoItem item)
+        {
+            var existingItem = this.GetById(item.Id);
+            if (existingItem == null)
+                return null;
+
+            existingItem.IsComplete = item.IsComplete;
+            existingItem.Name = item.Name;
+
+            _ctx.SaveChanges();
+
+            return existingItem;
+        }
+
+        public TodoItem Delete(int id)
+        {
+            var existingItem = this.GetById(id);
+            if (existingItem == null)
+                return null;
+
+            _ctx.TodoItems.Remove(existingItem);
+            _ctx.SaveChanges();
+
+            return existingItem;
+        }
     }
 
     public interface ITodoService
     {
         TodoItem GetById(int id);
         List<TodoItem> GetAll();
+        TodoItem Create(TodoItem item);
+        TodoItem Update(TodoItem item);
+        TodoItem Delete(int id);
     }
 }

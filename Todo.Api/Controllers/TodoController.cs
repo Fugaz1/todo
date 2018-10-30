@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Todo.Application;
 using Todo.Core.Entities;
-
 
 namespace Todo.Api.Controllers
 {
@@ -36,22 +32,36 @@ namespace Todo.Api.Controllers
             return item;
         }
 
-        //// POST api/<controller>
-        //[HttpPost]
-        //public void Post([FromBody]string value)
-        //{
-        //}
+        [HttpPost]
+        public IActionResult Create([FromBody]
+            TodoItem item)
+        {
+            var createdItem = _todoService.Create(item);
 
-        //// PUT api/<controller>/5
-        //[HttpPut("{id}")]
-        //public void Put(int id, [FromBody]string value)
-        //{
-        //}
+            return CreatedAtRoute("GetTodo", new {id = createdItem.Id}, createdItem);
+        }
 
-        //// DELETE api/<controller>/5
-        //[HttpDelete("{id}")]
-        //public void Delete(int id)
-        //{
-        //}
+        [HttpPut("{id}")]
+        public IActionResult Update(int id, [FromBody]
+            TodoItem item)
+        {
+            item.Id = id;
+
+            var updatedItem = _todoService.Update(item);
+            if (updatedItem == null)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            var deletedItem = _todoService.Delete(id);
+            if (deletedItem == null)
+                return NotFound();
+
+            return NoContent();
+        }
     }
 }

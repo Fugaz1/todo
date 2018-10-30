@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -16,14 +14,14 @@ namespace Todo.Api.Integration.Tests
 {
     public class TodoControllerTests
     {
-        private readonly HttpClient _client;
-        private readonly TestServer _server;
-
         public TodoControllerTests()
         {
             _server = new TestServer(new WebHostBuilder().UseStartup<Startup>());
             _client = _server.CreateClient();
         }
+
+        private readonly HttpClient _client;
+        private readonly TestServer _server;
 
         [Theory]
         [InlineData(0)]
@@ -57,10 +55,90 @@ namespace Todo.Api.Integration.Tests
         }
 
         [Fact]
+        public async void Create_Should_Redirect()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Name = "Item 1",
+                IsComplete = true
+            };
+
+            using (var ctx = _server.Host.Services.GetRequiredService<TodoContext>())
+            {
+                ctx.TodoItems.RemoveRange(ctx.TodoItems);
+                ctx.SaveChanges();
+            }
+
+            // act
+            var response = await _client.PostAsJsonAsync("/api/todo/", itemInput);
+
+            // assert
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadAsStringAsync();
+            result.Should().NotBeNullOrEmpty();
+
+            var itemResult = JsonConvert.DeserializeObject<TodoItem>(result);
+            itemResult.Should().BeOfType<TodoItem>();
+            itemResult.Id.Should().BeGreaterThan(0);
+            itemResult.Name.Should().Be(itemInput.Name);
+            itemResult.IsComplete.Should().Be(itemInput.IsComplete);
+        }
+
+        [Fact]
+        public async void Delete_Should_Return_NoContent()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Id = 2,
+                Name = "Item 2",
+                IsComplete = true
+            };
+
+            using (var ctx = _server.Host.Services.GetRequiredService<TodoContext>())
+            {
+                ctx.TodoItems.RemoveRange(ctx.TodoItems);
+                ctx.Add(itemInput);
+                ctx.SaveChanges();
+            }
+
+            // act
+            var response = await _client.DeleteAsync($"/api/todo/{itemInput.Id}");
+
+            // assert
+            response.EnsureSuccessStatusCode();
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+            var result = await response.Content.ReadAsStringAsync();
+            result.Should().BeNullOrEmpty();
+        }
+
+        [Fact]
+        public async void Delete_Should_Return_NotFound()
+        {
+            // arrange
+            const int itemId = 2;
+
+            using (var ctx = _server.Host.Services.GetRequiredService<TodoContext>())
+            {
+                ctx.TodoItems.RemoveRange(ctx.TodoItems);
+                ctx.SaveChanges();
+            }
+
+            // act
+            var response = await _client.DeleteAsync($"/api/todo/{itemId}");
+
+            // assert
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        [Fact]
         public async void GetById_Should_Return_Item()
         {
             // arrange
-            var itemInput = new TodoItem {Name = $"Item test", IsComplete = true };
+            var itemInput = new TodoItem {Name = "Item test", IsComplete = true};
             using (var ctx = _server.Host.Services.GetRequiredService<TodoContext>())
             {
                 ctx.TodoItems.RemoveRange(ctx.TodoItems);
@@ -96,6 +174,62 @@ namespace Todo.Api.Integration.Tests
 
             // act
             var response = await _client.GetAsync("/api/todo/1");
+
+            // assert
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        [Fact]
+        public async void Update_Should_Return_NoContent()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Id = 2,
+                Name = "Item 2",
+                IsComplete = true
+            };
+
+            using (var ctx = _server.Host.Services.GetRequiredService<TodoContext>())
+            {
+                ctx.TodoItems.RemoveRange(ctx.TodoItems);
+                ctx.Add(itemInput);
+                ctx.SaveChanges();
+            }
+
+            itemInput.Name = "Item 2 Updated";
+            itemInput.IsComplete = false;
+
+            // act
+            var response = await _client.PutAsJsonAsync($"/api/todo/{itemInput.Id}", itemInput);
+
+            // assert
+            response.EnsureSuccessStatusCode();
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+            var result = await response.Content.ReadAsStringAsync();
+            result.Should().BeNullOrEmpty();
+        }
+
+        [Fact]
+        public async void Update_Should_Return_NotFound()
+        {
+            // arrange
+            var itemInput = new TodoItem
+            {
+                Id = 2,
+                Name = "Item 2",
+                IsComplete = true
+            };
+
+            using (var ctx = _server.Host.Services.GetRequiredService<TodoContext>())
+            {
+                ctx.TodoItems.RemoveRange(ctx.TodoItems);
+                ctx.SaveChanges();
+            }
+
+            // act
+            var response = await _client.PutAsJsonAsync($"/api/todo/{itemInput.Id}", itemInput);
 
             // assert
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
