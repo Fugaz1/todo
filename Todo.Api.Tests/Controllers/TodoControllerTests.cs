@@ -13,8 +13,8 @@ namespace Todo.Api.Tests.Controllers
 {
     public class TodoControllerTests
     {
-        private TodoController _sut;
-        private Mock<ITodoService> _todoServiceMock;
+        private readonly TodoController _sut;
+        private readonly Mock<ITodoService> _todoServiceMock;
 
         public TodoControllerTests()
         {
@@ -29,16 +29,16 @@ namespace Todo.Api.Tests.Controllers
         public void Get_Should_Return_AllItems(int itemCount)
         {
             // arrange
-            var items = new List<TodoItem>();
+            var itemsInput = new List<TodoItem>();
             for (var i = 1; i <= itemCount; i++)
             {
-                items.Add(new TodoItem()
+                itemsInput.Add(new TodoItem()
                 {
                     Name = $"Item {i}"
                 });
             }
 
-            _todoServiceMock.Setup(x => x.GetAll()).Returns(items);
+            _todoServiceMock.Setup(x => x.GetAll()).Returns(itemsInput);
 
             // act
             var result = _sut.Get();
@@ -47,10 +47,38 @@ namespace Todo.Api.Tests.Controllers
             result.Should().NotBeNull();
             result.Should().BeOfType<ActionResult<List<TodoItem>>>();
 
-            var resultValue = result.Value;
-            resultValue.Should().NotBeNull();
-            resultValue.Should().BeOfType<List<TodoItem>>();
-            resultValue.Should().HaveCount(itemCount);
+            var itemsResult = result.Value;
+            itemsResult.Should().NotBeNull();
+            itemsResult.Should().BeOfType<List<TodoItem>>();
+            itemsResult.Should().HaveCount(itemCount);
+        }
+
+        [Fact]
+        public void GetById_Should_Return_Item()
+        {
+            // arrange
+            var itemInput = new TodoItem()
+            {
+                Id = 1,
+                Name = $"Item 1",
+                IsComplete = true
+            };
+
+            _todoServiceMock.Setup(x => x.GetById(itemInput.Id)).Returns(itemInput);
+
+            // act
+            var result = _sut.Get(itemInput.Id);
+
+            // assert
+            result.Should().NotBeNull();
+            result.Should().BeOfType<ActionResult<TodoItem>>();
+
+            var itemResult = result.Value;
+            itemResult.Should().NotBeNull();
+            itemResult.Should().BeOfType<TodoItem>();
+            itemResult.Id.Should().Be(itemInput.Id);
+            itemResult.Name.Should().Be(itemInput.Name);
+            itemResult.IsComplete.Should().Be(itemInput.IsComplete);
         }
 
         [Fact]

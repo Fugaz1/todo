@@ -12,13 +12,6 @@ namespace Todo.Application
         public TodoService(TodoContext ctx)
         {
             _ctx = ctx;
-
-            if (!_ctx.TodoItems.Any())
-            {
-                for (var i = 1; i <= 10; i++) _ctx.TodoItems.Add(new TodoItem {Name = $"Item {i}"});
-
-                _ctx.SaveChanges();
-            }
         }
 
         public TodoItem GetById(int id)
